@@ -13,7 +13,7 @@ var getFromApi = function(endpoint, args) {
     unirest.get('https://api.spotify.com/v1/' + endpoint)
         .qs(args)
         /* the end method is called from the HTTP response to tell you that
-        all the data has been recieved, you triggern your own end event on
+        all the data has been recieved, you trigger your own end event on
         the emitter, attaching the response body which has been parsed by
          unirest */
         .end(function(response) {
@@ -23,7 +23,7 @@ var getFromApi = function(endpoint, args) {
             /* in the case of an error, your own error event is triggered on
             the emitter, attaching the error code returned by unirest */
             else {
-                emitter.emit('error', response.code);
+                emitter.emit('error', response.code, response.body);
             }
         });
     return emitter;
@@ -49,11 +49,16 @@ app.get('/search/:name', function(req, res) {
     searchReq.on('end', function(item) {
         var artist = item.artists.items[0];
         var artistId = item.artists.items[0].id;
-        res.json(artist);
-    });
-    app.get('/artists/' + artistId + '/related-artists', function(req, res) {
-        var requestSearch = getFromApi('artists', {
+
+        var requestSearch = getFromApi('artists/' + artistId + '/related-artists', {
             id: req.params.id
+        });
+        requestSearch.on('end', function(item) {
+            artist.related=item.artists;
+            res.json(artist);
+        });
+        requestSearch.on('error', function(code, body) {
+            console.log(code, body);
         });
     });
     /* if there is an error, the error event handler's callback function sends
