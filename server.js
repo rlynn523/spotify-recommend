@@ -55,17 +55,26 @@ app.get('/search/:name', function(req, res) {
         });
         requestRelated.on('end', function(item) {
             artist.related = item.artists;
-            res.json(artist);
-            var relatedId = artist.related[0].id;
-            var requestTop = getFromApi('artists/' + relatedId + '/top-tracks', {
-                id: req.params.id,
-                country: 'US'
-            });
-            requestTop.on('end', function(item) {
-                for(i = 0; i < 5; i++) {
-                    console.log(item.tracks[i].name);
-                }
-            });
+            var relatedId;
+            var countLoop = 0;
+            for(i = 0; i < artist.related.length; i++){
+                relatedId = artist.related[i].id;
+                var requestTop = getFromApi('artists/' + relatedId + '/top-tracks', {
+                    id: req.params.id,
+                    country: 'US'
+                });
+                var callback = function(index){
+                    return function(item){
+                        artist.related[index].tracks = item.tracks;
+                        countLoop++;
+                        if(countLoop == artist.related.length){
+                            res.json(artist);
+                        }
+                    };
+                };
+                var myCallback = callback(i);
+                requestTop.on('end', myCallback);
+            }
         });
         requestRelated.on('error', function(code, body) {
             console.log(code, body);
