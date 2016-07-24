@@ -50,14 +50,24 @@ app.get('/search/:name', function(req, res) {
         var artist = item.artists.items[0];
         var artistId = item.artists.items[0].id;
 
-        var requestSearch = getFromApi('artists/' + artistId + '/related-artists', {
+        var requestRelated = getFromApi('artists/' + artistId + '/related-artists', {
             id: req.params.id
         });
-        requestSearch.on('end', function(item) {
-            artist.related=item.artists;
+        requestRelated.on('end', function(item) {
+            artist.related = item.artists;
             res.json(artist);
+            var relatedId = artist.related[0].id;
+            var requestTop = getFromApi('artists/' + relatedId + '/top-tracks', {
+                id: req.params.id,
+                country: 'US'
+            });
+            requestTop.on('end', function(item) {
+                for(i = 0; i < 5; i++) {
+                    console.log(item.tracks[i].name);
+                }
+            });
         });
-        requestSearch.on('error', function(code, body) {
+        requestRelated.on('error', function(code, body) {
             console.log(code, body);
         });
     });
